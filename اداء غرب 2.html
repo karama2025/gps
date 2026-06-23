@@ -1,0 +1,773 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ملاحة ميدانية — غرب 2 + هدف 6</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: Arial, sans-serif;
+  background: #0a0a0a;
+  color: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+}
+h1 { font-size:18px; color:#00FFFF; text-align:center; margin:10px 0;
+     text-shadow:0 0 10px #00FFFF; }
+.subtitle { font-size:12px; color:#888; text-align:center; margin-bottom:12px; }
+
+.target-card {
+  width:100%; max-width:420px; background:#111;
+  border-radius:12px; padding:14px; margin-bottom:12px;
+  border:2px solid #00FFFF; box-shadow:0 0 20px #00FFFF44;
+}
+.target-name { font-size:15px; font-weight:bold; color:#00FFFF;
+               margin-bottom:6px; text-align:center; }
+.target-info { font-size:11px; color:#aaa; text-align:center;
+               margin-bottom:8px; line-height:1.6; }
+.coords-box { background:#1a1a2a; border-radius:8px; padding:8px;
+              text-align:center; font-size:12px; color:#88CCFF;
+              font-family:monospace; }
+
+.compass-container {
+  width:100%; max-width:420px; background:#111;
+  border-radius:12px; padding:14px; margin-bottom:12px;
+  border:2px solid #333; text-align:center;
+}
+.compass { width:160px; height:160px; border-radius:50%;
+           border:3px solid #333;
+           background:radial-gradient(circle,#1a1a2a,#0a0a14);
+           position:relative; display:flex; align-items:center;
+           justify-content:center; margin:0 auto 10px; }
+.compass-arrow {
+  width:6px; height:70px; position:absolute;
+  top:50%; left:50%;
+  transform-origin:bottom center;
+  transform:translateX(-50%) translateY(-100%);
+  transition:transform 0.3s ease;
+}
+.arrow-up { width:0; height:0;
+  border-left:8px solid transparent; border-right:8px solid transparent;
+  border-bottom:35px solid #00FFFF;
+  position:absolute; top:0; left:50%; transform:translateX(-50%); }
+.arrow-down { width:0; height:0;
+  border-left:6px solid transparent; border-right:6px solid transparent;
+  border-top:28px solid #FF4444;
+  position:absolute; bottom:0; left:50%; transform:translateX(-50%); }
+.compass-center { width:10px; height:10px; background:white;
+                  border-radius:50%; position:absolute;
+                  top:50%; left:50%; transform:translate(-50%,-50%); z-index:10; }
+.cn { position:absolute; font-size:12px; font-weight:bold; color:#00FFFF;
+      top:5px; left:50%; transform:translateX(-50%); }
+.cs { position:absolute; font-size:12px; color:#aaa;
+      bottom:5px; left:50%; transform:translateX(-50%); }
+.ce { position:absolute; font-size:12px; color:#aaa;
+      right:5px; top:50%; transform:translateY(-50%); }
+.cw { position:absolute; font-size:12px; color:#aaa;
+      left:5px; top:50%; transform:translateY(-50%); }
+
+.nav-info { display:grid; grid-template-columns:1fr 1fr; gap:8px;
+            width:100%; max-width:420px; margin-bottom:12px; }
+.nav-box { background:#111; border-radius:10px; padding:10px;
+           text-align:center; border:1px solid #333; }
+.nav-box.hl { border-color:#00FFFF; box-shadow:0 0 10px #00FFFF33; }
+.nav-box .lbl { font-size:10px; color:#888; margin-bottom:4px; }
+.nav-box .val { font-size:20px; font-weight:bold; color:#00FFFF; }
+.nav-box .unt { font-size:10px; color:#666; }
+
+.status-bar {
+  width:100%; max-width:420px; background:#111; border-radius:10px;
+  padding:12px; margin-bottom:12px; text-align:center;
+  font-size:13px; font-weight:bold; border:2px solid #333; transition:all 0.3s;
+}
+.status-bar.searching { border-color:#FF8C00; color:#FF8C00; }
+.status-bar.near      { border-color:#FFDD00; color:#FFDD00; }
+.status-bar.arrived   { border-color:#00FF44; color:#00FF44;
+                         box-shadow:0 0 20px #00FF4488; }
+.status-bar.no-gps    { border-color:#FF4444; color:#FF4444; }
+
+/* ===== قسم المسامير ===== */
+.nails-section {
+  width:100%; max-width:420px; background:#111;
+  border-radius:12px; padding:14px; margin-bottom:12px;
+  border:2px solid #CC8800;
+}
+.nails-title {
+  font-size:14px; font-weight:bold; color:#CC8800;
+  text-align:center; margin-bottom:12px;
+}
+.nails-desc {
+  font-size:11px; color:#888; text-align:center;
+  margin-bottom:12px; line-height:1.5;
+}
+
+/* رسم المستطيل التوضيحي */
+.rect-diagram {
+  width:100%; max-width:280px; margin:0 auto 12px;
+  position:relative;
+}
+.rect-svg { width:100%; }
+
+/* بطاقات الزوايا */
+.corners-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  margin-bottom:12px;
+}
+.corner-card {
+  background:#1a1200; border-radius:10px; padding:10px;
+  border:1px solid #CC8800; text-align:center;
+  cursor:pointer; transition:all 0.2s;
+}
+.corner-card.active-corner {
+  border-color:#FFDD00; background:#2a2000;
+  box-shadow:0 0 12px #FFDD0066;
+}
+.corner-card:active { transform:scale(0.97); }
+.corner-name {
+  font-size:12px; font-weight:bold; color:#CC8800; margin-bottom:4px;
+}
+.corner-nail {
+  font-size:10px; color:#888; margin-bottom:6px;
+}
+.corner-coords {
+  font-size:10px; color:#FFDD00; font-family:monospace; line-height:1.4;
+}
+.corner-dist {
+  font-size:10px; color:#aaa; margin-top:4px;
+}
+.corner-status {
+  font-size:11px; font-weight:bold; margin-top:4px;
+}
+.corner-status.done { color:#00FF44; }
+.corner-status.current { color:#FFDD00; }
+.corner-status.todo { color:#555; }
+
+/* شريط التقدم للمسامير */
+.nails-progress {
+  background:#1a1a1a; border-radius:8px; padding:10px;
+  text-align:center; margin-bottom:10px; border:1px solid #333;
+}
+.progress-text {
+  font-size:12px; color:#888; margin-bottom:6px;
+}
+.progress-track {
+  width:100%; height:10px; background:#222; border-radius:5px; overflow:hidden;
+}
+.progress-fill {
+  height:100%; background:linear-gradient(90deg,#00FF44,#FFDD00);
+  border-radius:5px; transition:width 0.5s;
+}
+
+/* زر الانتقال للزاوية التالية */
+.btn-next-corner {
+  width:100%; padding:12px; border:none; border-radius:10px;
+  background:#CC8800; color:#000; font-size:14px; font-weight:bold;
+  cursor:pointer; transition:all 0.2s; margin-bottom:8px;
+}
+.btn-next-corner:active { transform:scale(0.97); }
+.btn-mark-corner {
+  width:100%; padding:12px; border:2px solid #00FF44; border-radius:10px;
+  background:#001a00; color:#00FF44; font-size:14px; font-weight:bold;
+  cursor:pointer; transition:all 0.2s; margin-bottom:8px;
+}
+.btn-mark-corner:active { transform:scale(0.97); }
+.btn-reset-nails {
+  width:100%; padding:8px; border:1px solid #333; border-radius:8px;
+  background:#1a1a1a; color:#888; font-size:12px; cursor:pointer;
+}
+
+/* قائمة الأهداف */
+.targets-list {
+  width:100%; max-width:420px; background:#111;
+  border-radius:12px; padding:12px; margin-bottom:12px;
+  border:1px solid #333;
+}
+.targets-title { font-size:12px; color:#888; margin-bottom:8px; text-align:center; }
+.target-btn {
+  width:100%; padding:10px; border-radius:8px;
+  border:1px solid #333; background:#1a1a1a; color:white;
+  font-size:12px; cursor:pointer; margin-bottom:6px;
+  text-align:right; transition:all 0.2s;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.target-btn.active { border-color:#00FFFF; background:#0a1a1a; color:#00FFFF; }
+.target-btn:last-child { margin-bottom:0; }
+.t-badge {
+  font-size:10px; padding:2px 6px; border-radius:4px;
+  background:#333; color:#aaa;
+}
+.t-badge.new  { background:#003333; color:#00FFFF; }
+.t-badge.conf { background:#330000; color:#FF8C00; }
+
+/* البكسل المرئي */
+.pixel-vis {
+  width:100%; max-width:420px; background:#111;
+  border-radius:12px; padding:12px; margin-bottom:12px;
+  border:1px solid #333; text-align:center;
+}
+.pixel-vis-title { font-size:11px; color:#888; margin-bottom:8px; }
+.pixel-rect-wrap {
+  width:200px; height:45px; background:#00FFFF22;
+  border:3px solid #00FFFF; border-radius:4px;
+  margin:0 auto 6px; position:relative;
+}
+.pixel-dot {
+  width:12px; height:12px; background:#FF4444; border-radius:50%;
+  position:absolute; transition:all 0.3s;
+  transform:translate(-50%,-50%);
+}
+/* نقاط الزوايا في البكسل */
+.corner-dot {
+  width:8px; height:8px; border-radius:50%;
+  position:absolute; transform:translate(-50%,-50%);
+}
+.pixel-dims { font-size:10px; color:#666; }
+
+.btn-row { display:flex; gap:8px; width:100%; max-width:420px; margin-bottom:8px; }
+.btn { flex:1; padding:13px; border:none; border-radius:10px;
+       font-size:13px; font-weight:bold; cursor:pointer; transition:all 0.2s; }
+.btn-primary  { background:#00FFFF; color:#000; }
+.btn-secondary { background:#1a1a2a; color:#00FFFF; border:2px solid #00FFFF; }
+.btn:active { transform:scale(0.95); }
+
+.log-box {
+  width:100%; max-width:420px; background:#0a0a0a;
+  border-radius:10px; padding:8px; font-size:10px;
+  color:#555; font-family:monospace; max-height:70px;
+  overflow-y:auto; border:1px solid #222; margin-bottom:10px;
+}
+.log-entry { color:#444; margin-bottom:2px; }
+.log-entry.good { color:#00AA44; }
+.log-entry.warn { color:#FF8C00; }
+</style>
+</head>
+<body>
+
+<h1>🎯 ملاحة ميدانية — المسامير</h1>
+<div class="subtitle">غرب 2 + هدف 6 — المزرعة الثانية</div>
+
+<!-- قائمة الأهداف -->
+<div class="targets-list">
+  <div class="targets-title">اختر الهدف</div>
+  <button class="target-btn active" id="btn-w2"    onclick="selectTarget('w2')">
+    <span>🎯 غرب 2 — اكتشاف جديد (34م)</span>
+    <span class="t-badge new">جديد</span>
+  </button>
+  <button class="target-btn" id="btn-t6"    onclick="selectTarget('t6')">
+    <span>🔵 هدف 6 — مؤكد (54م)</span>
+    <span class="t-badge conf">مؤكد</span>
+  </button>
+  <button class="target-btn" id="btn-arsef" onclick="selectTarget('arsef')">
+    <span>★ الأرصفة (مرجع)</span>
+    <span class="t-badge">مرجع</span>
+  </button>
+</div>
+
+<!-- بطاقة الهدف -->
+<div class="target-card">
+  <div class="target-name"  id="tname">🎯 غرب 2 — فراغ ثابت</div>
+  <div class="target-info"  id="tinfo">
+    انحراف 2.5 عبر 5 سنوات ✅<br>
+    متوسط نسبة HV/HH = -7.4 dB<br>
+    34 متراً غرب الأرصفة مباشرة
+  </div>
+  <div class="coords-box" id="tcoords">32.3467160 , 20.6688840</div>
+</div>
+
+<!-- حالة الوصول -->
+<div class="status-bar no-gps" id="status-bar">📡 في انتظار إشارة GPS...</div>
+
+<!-- البوصلة -->
+<div class="compass-container">
+  <div style="font-size:13px;color:#aaa;margin-bottom:10px;">اتجاه الهدف الحالي</div>
+  <div class="compass">
+    <div class="compass-arrow" id="compass-arrow">
+      <div class="arrow-up"></div>
+      <div class="arrow-down"></div>
+    </div>
+    <div class="compass-center"></div>
+    <span class="cn">ش</span><span class="cs">ج</span>
+    <span class="ce">ش</span><span class="cw">غ</span>
+  </div>
+  <div style="font-size:12px;color:#888;">
+    الاتجاه: <span id="bearing-text" style="color:#00FFFF;font-weight:bold;">---</span>
+  </div>
+</div>
+
+<!-- معلومات التوجيه -->
+<div class="nav-info">
+  <div class="nav-box hl">
+    <div class="lbl">المسافة للهدف</div>
+    <div class="val" id="distance">---</div>
+    <div class="unt">متر</div>
+  </div>
+  <div class="nav-box">
+    <div class="lbl">دقة GPS</div>
+    <div class="val" id="accuracy" style="color:#FFDD00;">---</div>
+    <div class="unt">متر</div>
+  </div>
+  <div class="nav-box">
+    <div class="lbl">خط العرض</div>
+    <div class="val" id="my-lat" style="font-size:13px;">---</div>
+    <div class="unt">درجة</div>
+  </div>
+  <div class="nav-box">
+    <div class="lbl">خط الطول</div>
+    <div class="val" id="my-lon" style="font-size:13px;">---</div>
+    <div class="unt">درجة</div>
+  </div>
+</div>
+
+<!-- ===== قسم المسامير ===== -->
+<div class="nails-section">
+  <div class="nails-title">📐 رسم المستطيل بالمسامير</div>
+  <div class="nails-desc">
+    اضغط "انتقل للزاوية التالية" — سيقودك GPS لكل زاوية<br>
+    عند وصولك اضغط "ضع مسمار هنا ✅"
+  </div>
+
+  <!-- رسم توضيحي للمستطيل -->
+  <svg class="rect-svg" viewBox="0 0 280 120" style="margin-bottom:12px;">
+    <!-- المستطيل -->
+    <rect x="40" y="20" width="200" height="80"
+          fill="#00FFFF11" stroke="#CC8800" stroke-width="2" rx="4"/>
+    <!-- الزوايا -->
+    <circle id="svg-nw" cx="40"  cy="20"  r="10" fill="#333" stroke="#CC8800" stroke-width="2"/>
+    <circle id="svg-ne" cx="240" cy="20"  r="10" fill="#333" stroke="#CC8800" stroke-width="2"/>
+    <circle id="svg-sw" cx="40"  cy="100" r="10" fill="#333" stroke="#CC8800" stroke-width="2"/>
+    <circle id="svg-se" cx="240" cy="100" r="10" fill="#333" stroke="#CC8800" stroke-width="2"/>
+    <!-- تسميات الزوايا -->
+    <text x="40"  y="14"  text-anchor="middle" font-size="9" fill="#CC8800">شمال غرب</text>
+    <text x="240" y="14"  text-anchor="middle" font-size="9" fill="#CC8800">شمال شرق</text>
+    <text x="40"  y="116" text-anchor="middle" font-size="9" fill="#CC8800">جنوب غرب</text>
+    <text x="240" y="116" text-anchor="middle" font-size="9" fill="#CC8800">جنوب شرق</text>
+    <!-- الأبعاد -->
+    <text x="140" y="65"  text-anchor="middle" font-size="10" fill="#888">16.93م</text>
+    <text x="18"  y="62"  text-anchor="middle" font-size="10" fill="#888">3.79م</text>
+    <!-- موقعك -->
+    <circle id="svg-me" cx="140" cy="60" r="6" fill="#FF4444" opacity="0"/>
+    <text x="140" y="85" text-anchor="middle" font-size="8" fill="#FF444488">أنت هنا</text>
+    <!-- الاتجاهات -->
+    <text x="140" y="10" text-anchor="middle" font-size="8" fill="#555">↑ شمال</text>
+    <text x="270" y="62" text-anchor="middle" font-size="8" fill="#555">شرق→</text>
+    <text x="10"  y="62" text-anchor="middle" font-size="8" fill="#555">←غرب</text>
+  </svg>
+
+  <!-- شريط التقدم -->
+  <div class="nails-progress">
+    <div class="progress-text">تقدم المسامير: <span id="nails-count">0</span> من 4</div>
+    <div class="progress-track">
+      <div class="progress-fill" id="nails-progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- بطاقات الزوايا الأربع -->
+  <div class="corners-grid">
+    <div class="corner-card" id="card-nw" onclick="goToCorner('nw')">
+      <div class="corner-name">↖ شمال غرب</div>
+      <div class="corner-nail">مسمار 1</div>
+      <div class="corner-coords" id="coords-nw">---</div>
+      <div class="corner-dist" id="dist-nw">--- م</div>
+      <div class="corner-status todo" id="status-nw">○ لم يوضع</div>
+    </div>
+    <div class="corner-card" id="card-ne" onclick="goToCorner('ne')">
+      <div class="corner-name">↗ شمال شرق</div>
+      <div class="corner-nail">مسمار 2</div>
+      <div class="corner-coords" id="coords-ne">---</div>
+      <div class="corner-dist" id="dist-ne">--- م</div>
+      <div class="corner-status todo" id="status-ne">○ لم يوضع</div>
+    </div>
+    <div class="corner-card" id="card-sw" onclick="goToCorner('sw')">
+      <div class="corner-name">↙ جنوب غرب</div>
+      <div class="corner-nail">مسمار 3</div>
+      <div class="corner-coords" id="coords-sw">---</div>
+      <div class="corner-dist" id="dist-sw">--- م</div>
+      <div class="corner-status todo" id="status-sw">○ لم يوضع</div>
+    </div>
+    <div class="corner-card" id="card-se" onclick="goToCorner('se')">
+      <div class="corner-name">↘ جنوب شرق</div>
+      <div class="corner-nail">مسمار 4</div>
+      <div class="corner-coords" id="coords-se">---</div>
+      <div class="corner-dist" id="dist-se">--- م</div>
+      <div class="corner-status todo" id="status-se">○ لم يوضع</div>
+    </div>
+  </div>
+
+  <!-- أزرار المسامير -->
+  <button class="btn-next-corner" onclick="nextCorner()">
+    📍 انتقل للزاوية التالية
+  </button>
+  <button class="btn-mark-corner" id="btn-mark" onclick="markCorner()" disabled
+          style="opacity:0.4;">
+    ✅ ضع مسمار هنا
+  </button>
+  <button class="btn-reset-nails" onclick="resetNails()">
+    🔄 إعادة تعيين المسامير
+  </button>
+</div>
+
+<!-- البكسل المرئي -->
+<div class="pixel-vis">
+  <div class="pixel-vis-title">موقعك داخل البكسل الراداري</div>
+  <div class="pixel-rect-wrap" id="pixel-rect">
+    <!-- نقاط الزوايا -->
+    <div class="corner-dot" id="dot-nw"
+         style="left:0%;top:0%;background:#CC8800;width:6px;height:6px;"></div>
+    <div class="corner-dot" id="dot-ne"
+         style="left:100%;top:0%;background:#CC8800;width:6px;height:6px;"></div>
+    <div class="corner-dot" id="dot-sw"
+         style="left:0%;top:100%;background:#CC8800;width:6px;height:6px;"></div>
+    <div class="corner-dot" id="dot-se"
+         style="left:100%;top:100%;background:#CC8800;width:6px;height:6px;"></div>
+    <!-- موقعك -->
+    <div class="pixel-dot" id="pixel-dot"
+         style="left:50%;top:50%;"></div>
+  </div>
+  <div class="pixel-dims">الغرب ← → الشرق | 16.93م × 3.79م</div>
+</div>
+
+<!-- أزرار أساسية -->
+<div class="btn-row">
+  <button class="btn btn-primary"   onclick="startGPS()">📡 تشغيل GPS</button>
+  <button class="btn btn-secondary" onclick="openMaps()">🗺️ خرائط جوجل</button>
+</div>
+<div class="btn-row">
+  <button class="btn btn-secondary" onclick="copyCoords()">📋 نسخ الإحداثيات</button>
+  <button class="btn btn-secondary" onclick="resetLog()">🔄 مسح السجل</button>
+</div>
+
+<div class="log-box" id="log"></div>
+
+<script>
+// ===== البيانات =====
+const TARGETS = {
+  w2: {
+    name: "🎯 غرب 2 — فراغ ثابت",
+    info: "انحراف 2.5 عبر 5 سنوات ✅<br>متوسط نسبة HV/HH = -7.4 dB<br>34 متراً غرب الأرصفة مباشرة",
+    lat: 32.3467160, lon: 20.6688840,
+    corners: {
+      nw: { lat: 32.3467330, lon: 20.6687940 },
+      ne: { lat: 32.3467330, lon: 20.6689740 },
+      sw: { lat: 32.3466990, lon: 20.6687940 },
+      se: { lat: 32.3466990, lon: 20.6689740 },
+    }
+  },
+  t6: {
+    name: "🔵 هدف 6 — مؤكد",
+    info: "انحراف 4.4 عبر 5 سنوات ✅<br>متوسط نسبة HV/HH = -6.6 dB<br>54 متراً شمال غرب الأرصفة",
+    lat: 32.346917, lon: 20.668722,
+    corners: {
+      nw: { lat: 32.346934, lon: 20.668632 },
+      ne: { lat: 32.346934, lon: 20.668812 },
+      sw: { lat: 32.346900, lon: 20.668632 },
+      se: { lat: 32.346900, lon: 20.668812 },
+    }
+  },
+  arsef: {
+    name: "★ الأرصفة الحجرية",
+    info: "النقطة المرجعية<br>أرصفة حجرية وجص وحجر محور روماني",
+    lat: 32.346716, lon: 20.669244,
+    corners: {
+      nw: { lat: 32.346733, lon: 20.669154 },
+      ne: { lat: 32.346733, lon: 20.669334 },
+      sw: { lat: 32.346699, lon: 20.669154 },
+      se: { lat: 32.346699, lon: 20.669334 },
+    }
+  }
+};
+
+const CORNER_ORDER = ['nw','ne','sw','se'];
+const CORNER_NAMES = {
+  nw:'↖ شمال غرب', ne:'↗ شمال شرق',
+  sw:'↙ جنوب غرب', se:'↘ جنوب شرق'
+};
+const SVG_IDS = { nw:'svg-nw', ne:'svg-ne', sw:'svg-sw', se:'svg-se' };
+
+let currentTarget = TARGETS.w2;
+let watchId = null;
+let myLat = null, myLon = null;
+let headingFromGPS = null;
+let prevLat = null, prevLon = null;
+let currentCornerIdx = -1;
+let nailsDone = { nw:false, ne:false, sw:false, se:false };
+let navMode = 'center'; // 'center' أو 'corner'
+let navCorner = null;
+
+// ===== دوال المساعدة =====
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371000;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function getBearing(lat1,lon1,lat2,lon2){
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const y=Math.sin(dLon)*Math.cos(lat2*Math.PI/180);
+  const x=Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180)-
+    Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLon);
+  return ((Math.atan2(y,x)*180/Math.PI)+360)%360;
+}
+function bearingToText(b){
+  if(b<22.5||b>=337.5) return 'شمال ↑';
+  if(b<67.5)  return 'شمال شرق ↗';
+  if(b<112.5) return 'شرق →';
+  if(b<157.5) return 'جنوب شرق ↘';
+  if(b<202.5) return 'جنوب ↓';
+  if(b<247.5) return 'جنوب غرب ↙';
+  if(b<292.5) return 'غرب ←';
+  return 'شمال غرب ↖';
+}
+
+// ===== اختيار الهدف =====
+function selectTarget(key){
+  currentTarget = TARGETS[key];
+  document.getElementById('tname').textContent   = currentTarget.name;
+  document.getElementById('tinfo').innerHTML     = currentTarget.info;
+  document.getElementById('tcoords').textContent =
+    currentTarget.lat.toFixed(7)+' , '+currentTarget.lon.toFixed(7);
+  document.querySelectorAll('.target-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-'+key).classList.add('active');
+  navMode='center'; navCorner=null;
+  resetNails();
+  updateCornerCoords();
+  addLog('تم تحديد: '+currentTarget.name,'good');
+}
+
+// ===== تحديث إحداثيات الزوايا =====
+function updateCornerCoords(){
+  const c = currentTarget.corners;
+  ['nw','ne','sw','se'].forEach(k=>{
+    document.getElementById('coords-'+k).textContent =
+      c[k].lat.toFixed(6)+'\n'+c[k].lon.toFixed(6);
+  });
+}
+
+// ===== نظام المسامير =====
+function goToCorner(cornerKey){
+  navMode='corner'; navCorner=cornerKey;
+  currentCornerIdx = CORNER_ORDER.indexOf(cornerKey);
+  // تفعيل البطاقة
+  document.querySelectorAll('.corner-card').forEach(c=>c.classList.remove('active-corner'));
+  document.getElementById('card-'+cornerKey).classList.add('active-corner');
+  // تفعيل زر الوضع
+  document.getElementById('btn-mark').disabled=false;
+  document.getElementById('btn-mark').style.opacity='1';
+  addLog('التوجه نحو: '+CORNER_NAMES[cornerKey],'warn');
+  updateNavigation();
+}
+
+function nextCorner(){
+  // ابحث عن أول زاوية لم توضع فيها مسمار
+  let next = -1;
+  for(let i=0;i<CORNER_ORDER.length;i++){
+    if(!nailsDone[CORNER_ORDER[i]]){
+      next=i; break;
+    }
+  }
+  if(next===-1){
+    addLog('✅ كل المسامير الأربعة وضعت!','good');
+    return;
+  }
+  goToCorner(CORNER_ORDER[next]);
+}
+
+function markCorner(){
+  if(!navCorner) return;
+  if(myLat===null){
+    addLog('يجب تشغيل GPS أولاً','warn'); return;
+  }
+  const c = currentTarget.corners[navCorner];
+  const dist = haversine(myLat,myLon,c.lat,c.lon);
+  if(dist>8){
+    addLog('أنت بعيد '+dist.toFixed(1)+'م — اقترب أكثر من الزاوية','warn');
+    return;
+  }
+  // وضع المسمار
+  nailsDone[navCorner] = true;
+  const statusEl = document.getElementById('status-'+navCorner);
+  statusEl.textContent = '✅ وضع المسمار';
+  statusEl.className = 'corner-status done';
+  // تحديث SVG
+  const svgEl = document.getElementById(SVG_IDS[navCorner]);
+  svgEl.setAttribute('fill','#00FF44');
+  // تحديث شريط التقدم
+  const doneCount = Object.values(nailsDone).filter(v=>v).length;
+  document.getElementById('nails-count').textContent = doneCount;
+  document.getElementById('nails-progress-fill').style.width = (doneCount*25)+'%';
+  addLog('✅ مسمار '+CORNER_NAMES[navCorner]+' وضع! ('+dist.toFixed(1)+'م من الزاوية)','good');
+  // انتقل للتالية تلقائياً
+  setTimeout(()=>{ if(doneCount<4) nextCorner(); },1500);
+}
+
+function resetNails(){
+  nailsDone={nw:false,ne:false,sw:false,se:false};
+  CORNER_ORDER.forEach(k=>{
+    document.getElementById('status-'+k).textContent='○ لم يوضع';
+    document.getElementById('status-'+k).className='corner-status todo';
+    document.getElementById(SVG_IDS[k]).setAttribute('fill','#333');
+    document.getElementById('dist-'+k).textContent='--- م';
+    document.getElementById('card-'+k).classList.remove('active-corner');
+  });
+  document.getElementById('nails-count').textContent='0';
+  document.getElementById('nails-progress-fill').style.width='0%';
+  document.getElementById('btn-mark').disabled=true;
+  document.getElementById('btn-mark').style.opacity='0.4';
+  navMode='center'; navCorner=null;
+  currentCornerIdx=-1;
+  addLog('تم إعادة تعيين المسامير');
+}
+
+// ===== تحديث التوجيه =====
+function updateNavigation(){
+  if(myLat===null) return;
+
+  // حدد النقطة الهدف الحالية
+  let targetLat, targetLon;
+  if(navMode==='corner'&&navCorner){
+    const c=currentTarget.corners[navCorner];
+    targetLat=c.lat; targetLon=c.lon;
+  } else {
+    targetLat=currentTarget.lat; targetLon=currentTarget.lon;
+  }
+
+  const dist=haversine(myLat,myLon,targetLat,targetLon);
+  const bearing=getBearing(myLat,myLon,targetLat,targetLon);
+
+  document.getElementById('distance').textContent=dist.toFixed(1);
+  document.getElementById('bearing-text').textContent=
+    bearingToText(bearing)+' ('+bearing.toFixed(0)+'°)';
+
+  // تدوير البوصلة
+  const rot=bearing-(headingFromGPS||0);
+  document.getElementById('compass-arrow').style.transform=
+    `translateX(-50%) translateY(-100%) rotate(${rot}deg)`;
+
+  // تحديث المسافة لكل زاوية
+  CORNER_ORDER.forEach(k=>{
+    const c=currentTarget.corners[k];
+    const d=haversine(myLat,myLon,c.lat,c.lon);
+    document.getElementById('dist-'+k).textContent=d.toFixed(1)+'م';
+  });
+
+  // تفعيل زر الوضع إذا كنت قريباً من الزاوية
+  if(navCorner){
+    const c=currentTarget.corners[navCorner];
+    const d=haversine(myLat,myLon,c.lat,c.lon);
+    const markBtn=document.getElementById('btn-mark');
+    if(d<8&&!nailsDone[navCorner]){
+      markBtn.disabled=false; markBtn.style.opacity='1';
+      markBtn.textContent='✅ ضع مسمار هنا ('+d.toFixed(1)+'م)';
+    }
+  }
+
+  // تحديث موقعك في البكسل
+  const t=currentTarget;
+  const lonRange=t.corners.ne.lon-t.corners.nw.lon;
+  const latRange=t.corners.nw.lat-t.corners.sw.lat;
+  const relX=Math.max(0,Math.min(1,(myLon-t.corners.nw.lon)/lonRange));
+  const relY=Math.max(0,Math.min(1,(t.corners.nw.lat-myLat)/latRange));
+  const dot=document.getElementById('pixel-dot');
+  dot.style.left=(relX*100)+'%';
+  dot.style.top=(relY*100)+'%';
+  dot.style.background=dist<3?'#00FF44':dist<10?'#FFDD00':'#FF4444';
+
+  // تحديث SVG
+  const svgMe=document.getElementById('svg-me');
+  svgMe.setAttribute('opacity','0.9');
+  svgMe.setAttribute('cx',40+relX*200);
+  svgMe.setAttribute('cy',20+relY*80);
+  svgMe.setAttribute('fill',dist<3?'#00FF44':dist<10?'#FFDD00':'#FF4444');
+
+  // شريط الحالة
+  const sb=document.getElementById('status-bar');
+  const label=navMode==='corner'?
+    '('+CORNER_NAMES[navCorner]+')':'(المركز)';
+  if(dist<3){
+    sb.className='status-bar arrived';
+    sb.textContent='✅ وصلت! '+label;
+  } else if(dist<10){
+    sb.className='status-bar near';
+    sb.textContent='🟡 قريب '+dist.toFixed(1)+'م '+label;
+  } else {
+    sb.className='status-bar searching';
+    sb.textContent='🔵 '+dist.toFixed(0)+'م — '+bearingToText(bearing)+' '+label;
+  }
+
+  // تتبع الاتجاه
+  if(prevLat!==null){
+    const d=haversine(prevLat,prevLon,myLat,myLon);
+    if(d>2) headingFromGPS=getBearing(prevLat,prevLon,myLat,myLon);
+  }
+  prevLat=myLat; prevLon=myLon;
+}
+
+// ===== GPS =====
+function startGPS(){
+  if(!navigator.geolocation){
+    document.getElementById('status-bar').className='status-bar no-gps';
+    document.getElementById('status-bar').textContent='❌ GPS غير متاح';
+    return;
+  }
+  addLog('جاري تشغيل GPS...','warn');
+  if(watchId) navigator.geolocation.clearWatch(watchId);
+  watchId=navigator.geolocation.watchPosition(
+    function(pos){
+      myLat=pos.coords.latitude;
+      myLon=pos.coords.longitude;
+      const acc=pos.coords.accuracy;
+      document.getElementById('my-lat').textContent=myLat.toFixed(6);
+      document.getElementById('my-lon').textContent=myLon.toFixed(6);
+      document.getElementById('accuracy').textContent=acc.toFixed(0);
+      addLog('GPS: '+myLat.toFixed(5)+', '+myLon.toFixed(5)+' ±'+acc.toFixed(0)+'م');
+      updateNavigation();
+    },
+    function(err){
+      document.getElementById('status-bar').className='status-bar no-gps';
+      document.getElementById('status-bar').textContent='❌ GPS: '+err.message;
+      addLog('خطأ: '+err.message,'warn');
+    },
+    { enableHighAccuracy:true, maximumAge:1000, timeout:30000 }
+  );
+}
+
+function openMaps(){
+  const tLat=navMode==='corner'&&navCorner?
+    currentTarget.corners[navCorner].lat:currentTarget.lat;
+  const tLon=navMode==='corner'&&navCorner?
+    currentTarget.corners[navCorner].lon:currentTarget.lon;
+  window.open('https://www.google.com/maps?q='+tLat+','+tLon,'_blank');
+}
+
+function copyCoords(){
+  const txt=currentTarget.lat.toFixed(7)+', '+currentTarget.lon.toFixed(7);
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>addLog('نُسخ: '+txt,'good'));
+  else addLog('الإحداثيات: '+txt,'good');
+}
+
+function addLog(msg,cls){
+  const log=document.getElementById('log');
+  const now=new Date();
+  const t=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+
+    ':'+String(now.getSeconds()).padStart(2,'0');
+  const div=document.createElement('div');
+  div.className='log-entry'+(cls?' '+cls:'');
+  div.textContent='['+t+'] '+msg;
+  log.prepend(div);
+}
+
+function resetLog(){ document.getElementById('log').innerHTML=''; }
+
+// تهيئة
+window.onload=function(){
+  updateCornerCoords();
+  addLog('الأداة جاهزة — اضغط تشغيل GPS','good');
+};
+</script>
+</body>
+</html>
